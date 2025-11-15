@@ -1,4 +1,3 @@
-
 <template>
   <div class="contain">
     <div class="sidebar-wrapper">
@@ -20,13 +19,136 @@
 
       <!-- 底部-->
       <div class="sidebar-footer">
-        <button class="login-btn">登录 / 注册</button>
+         <!-- <router-link to="/login"></router-link> -->
+        <button class="login-btn" @click="openLogin">登录 / 注册</button>
       </div>
     </div>
   </div>
+ 
+  <div class="loginmask"  v-if="islogin" @click.self="closeLogin">
+    <div class="logindialog">
+      <button class="dialog-close" @click="closeLogin" aria-label="关闭登录窗口">×</button>
+      <h3>登录</h3>
+      <form class="login-form" @submit.prevent="handleSubmit">
+        <label class="form-label" for="username">用户名</label>
+        <input
+          id="username"
+          type="text"
+          class="form-input"
+          placeholder="请输入用户名"
+          v-model="username"
+        />
+
+        <label class="form-label" for="password">密码</label>
+        <input
+          id="password"
+          type="password"
+          class="form-input"
+          placeholder="请输入密码"
+          v-model="password"
+        />
+
+        <div class="form-actions">
+          <label class="remember-me">
+            <input type="checkbox" v-model="rememberMe" />
+            <span>记住登录状态</span>
+          </label>
+        </div>
+
+        <button class="primary-btn" type="submit" :disabled="isLoading">
+          {{ isLoading ? '登录中...' : '立即登录' }}
+        </button>
+
+        <p class="alternate-action">
+          还没有账号？
+          <button class="link-btn" type="button" @click="islogin=false,isreguser=true">立即注册</button>
+        </p>
+      </form>
+    </div>
+  </div>
+
+<div class="loginmask" v-if="isreguser">
+  <div v-if="isreguser">
+    <div class="logindialog">
+      <button class="dialog-close" @click="isreguser=false" aria-label="关闭注册窗口">×</button>
+      <h3>注册</h3>
+      <form class="login-form" @submit.prevent="handleSignup">
+        <label class="form-label" for="username">用户名</label>
+        <input
+          id="username"
+          type="text"
+          class="form-input"
+          placeholder="请输入用户名"
+          v-model="username"
+        />
+
+        <label class="form-label" for="email">邮箱</label>
+        <input
+          id="email"
+          type="text"
+          class="form-input"
+          placeholder="请输入邮箱号"
+          v-model="email"
+        />
+
+
+        <label class="form-label" for="password">密码</label>
+        <input
+          id="password"
+          type="password"
+          class="form-input"
+          placeholder="请输入密码"
+          v-model="password"
+        />
+
+        <button class="primary-btn" type="submit">
+          立即注册
+        </button>
+
+        <p class="alternate-action">
+          已有账号？
+          <button class="link-btn" type="button" @click="isreguser=false,islogin=true">去登录</button>
+        </p>
+      </form>
+    </div>
+  </div>
+</div>
 </template>
 
-<script lang="ts" setup>
+<script setup>
+
+import { ref } from 'vue';
+
+const islogin = ref(false);
+const username = ref('');
+const email = ref('');
+const password = ref('');
+const rememberMe = ref(false);
+const isLoading = ref(false);
+const isreguser = ref(false);
+const openLogin = () => {
+  islogin.value = true;
+};
+
+const closeLogin = () => {
+  islogin.value = false;
+};
+
+const handleSubmit = async () => {
+  if (isLoading.value) return;
+  isLoading.value = true;
+
+  // TODO: 替换为真实接口请求
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+
+  isLoading.value = false;
+  closeLogin();
+};
+
+const handleSignup = () => {
+  // TODO: 跳转到注册页或打开注册弹窗
+  console.info('go to signup');
+};
 
 </script>
 
@@ -141,5 +263,147 @@
 
 .history-container::-webkit-scrollbar-track {
   background-color: transparent;
+}
+
+.loginmask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* 确保弹窗在最上层 */
+}
+
+/* 登录/注册模块容器样式 */
+.logindialog {
+  background: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  width: 360px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+  position: relative;
+  animation: popIn 0.3s ease;
+}
+
+.logindialog h3 {
+  font-size: 20px;
+  color: #1f2d3d;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.dialog-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #f5f7fa;
+  border-radius: 50%;
+  font-size: 18px;
+  color: #4e5969;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.dialog-close:hover {
+  background: #e5e6eb;
+  color: #1d2129;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-label {
+  font-size: 13px;
+  color: #4e5969;
+  font-weight: 500;
+}
+
+.form-input {
+  border: 1px solid #e5e6eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+  border-color: #409eff;
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.15);
+  outline: none;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #4e5969;
+}
+
+.link-btn {
+  border: none;
+  background: transparent;
+  color: #409eff;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.primary-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 12px 0;
+  background: linear-gradient(135deg, #409eff, #36cfc9);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.primary-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.alternate-action {
+  text-align: center;
+  font-size: 13px;
+  color: #86909c;
+  margin-top: 14px;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 </style>
