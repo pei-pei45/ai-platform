@@ -3,21 +3,19 @@
         <div class="chat-card">
             <h1 class="title">人工智能助手</h1>
             <div class="input-container">
-               <div class="question-input">
-                 <textarea
-                    type="text" 
-                    placeholder="请输入你的问题..." 
-                    
-                    @focus="isFocused = true"
-                    @blur="isFocused = false"
-                ></textarea>
-                <div class="button-example">
-                 <div class="button-row">
-                        <el-button>链接</el-button>
-                        <el-button type="primary">深度思考</el-button>
-                  </div>
-               </div>
-               </div>
+                <div class="question-input">
+                    <textarea
+                        placeholder="请输入你的问题..." 
+                        @focus="isFocused = true"
+                        @blur="isFocused = false"
+                    ></textarea>
+                    <div class="button-example">
+                        <div class="button-row">
+                            <el-button>链接</el-button>
+                            <el-button type="primary">深度思考</el-button>
+                        </div>
+                    </div>
+                </div>
                 <button class="send-btn">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -66,7 +64,9 @@ export default {
     padding: 40px 30px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     transition: transform 0.3s ease;
+
 }
+
 /* 标题样式 */
 .title {
     text-align: center;
@@ -77,49 +77,48 @@ export default {
     letter-spacing: 0.5px;
 }
 
-/* 输入容器 */
+/* 输入容器 - 关键修改：设置垂直对齐方式为顶部 */
 .input-container {
     display: flex;
     gap: 15px;
     width: 100%;
+    align-items: flex-start; /* 改为顶部对齐 */
 }
 
-/* 输入框样式 */
+/* 输入框样式 - 关键修改：去掉固定高度，由内容决定 */
 .question-input {
     flex: 1;
-    height: 100px;
-    padding: 5px 25px;
+    padding: 15px 25px; /* 增加内边距 */
     border: 1px solid #e2e8f0;
     border-radius: 15px;
     font-size: 16px;
-    resize: none;
     transition: all 0.3s ease;
     color: #4a5568;
-    vertical-align: top;
 }
-  /* 文本输入 */
+
+/* 文本输入区域 */
 textarea {
     width: 100%;
-    height: 100%;
+    min-height: 60px; /* 设置最小高度而非固定高度 */
     border: none;
     outline: none;
     font-size: 16px;
-     resize: none;
+    resize: vertical; /* 允许垂直调整大小 */
+    margin-bottom: 10px; /* 与按钮区域保持距离 */
+    resize: none;    
 }
 
 .question-input::placeholder {
-
     color: #a0aec0;
     transition: color 0.3s ease;
 }
 
-.question-input:focus {
-    outline: none;
+.question-input:focus-within { /* 监听内部元素焦点 */
     border-color: #63b3ed;
     box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.2);
 }
 
-/* 发送按钮 */
+/* 发送按钮 - 关键修改：去掉顶部margin，使用对齐方式 */
 .send-btn {
     width: 50px;
     height: 50px;
@@ -132,7 +131,7 @@ textarea {
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
-    margin-top: 25px;
+    margin-top: 40px; /* 适当调整顶部距离 */
 }
 
 .send-btn:hover {
@@ -156,6 +155,7 @@ textarea {
   gap: 1rem;
   align-items: center;
 }
+
 .button-row > * {
   margin: 0;
 }

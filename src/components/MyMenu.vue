@@ -118,6 +118,7 @@
 <script setup>
 
 import { ref } from 'vue';
+import api from '../api/index';
 
 const islogin = ref(false);
 const username = ref('');
@@ -136,13 +137,36 @@ const closeLogin = () => {
 
 const handleSubmit = async () => {
   if (isLoading.value) return;
+  if(!username.value || !password.value){
+    alert('请填写用户名和密码');
+    return;
+  }
   isLoading.value = true;
-
-  // TODO: 替换为真实接口请求
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-
-  isLoading.value = false;
-  closeLogin();
+  try{
+    const response = await api.post('/login',{
+      username: username.value,
+      password: password.value
+    });
+    
+    // 保存 token 和用户信息（响应拦截器已返回 response.data）
+    if (response.token) {
+      localStorage.setItem('token', response.token);
+      if (rememberMe.value) {
+        localStorage.setItem('user', JSON.stringify(response.user));
+      }
+      alert('登录成功！');
+      isLoading.value = false;
+      closeLogin();
+      // 清空表单
+      username.value = '';
+      password.value = '';
+    }
+  } catch (error) {
+    console.error('登录失败:', error);
+    const errorMessage = error.response?.data?.error || error.response?.data?.message || '登录失败，请检查用户名和密码';
+    alert(errorMessage);
+    isLoading.value = false;
+  }
 };
 
 const handleSignup = () => {

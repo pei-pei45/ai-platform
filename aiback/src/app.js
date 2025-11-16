@@ -1,7 +1,15 @@
 require('dotenv').config(); 
+const path = require('path');
 const express =require('express')
 const app = express()
 const cors =require('cors')
+
+// 添加请求日志中间件（放在最前面，确保所有请求都被记录）
+app.use((req, res, next) => {
+    console.log(`\n[${new Date().toISOString()}] ${req.method} ${req.originalUrl || req.path}`);
+    console.log('请求头:', JSON.stringify(req.headers, null, 2));
+    next();
+});
 
 app.use(cors())
 app.use(express.json())

@@ -16,7 +16,7 @@ api.interceptors.request.use(config=>{
     return Promise.reject(error);
 });
 // 响应拦截器
-api.interceptors.response.use(response=>{
+api.interceptors.response.use(
     response=>response.data,
     err=>{
         if(err.response?.status==401){
@@ -25,6 +25,6 @@ api.interceptors.response.use(response=>{
         }
         return Promise.reject(err)
     }
-})
+)
 
 export default api;
