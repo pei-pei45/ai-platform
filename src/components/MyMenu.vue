@@ -134,7 +134,7 @@ const openLogin = () => {
 const closeLogin = () => {
   islogin.value = false;
 };
-
+//登录功能实现
 const handleSubmit = async () => {
   if (isLoading.value) return;
   if(!username.value || !password.value){
@@ -166,13 +166,38 @@ const handleSubmit = async () => {
     const errorMessage = error.response?.data?.error || error.response?.data?.message || '登录失败，请检查用户名和密码';
     alert(errorMessage);
     isLoading.value = false;
+  } finally {
+    isLlogin.value = false;
   }
 };
 
+//注册功能实现
 const handleSignup = () => {
-  // TODO: 跳转到注册页或打开注册弹窗
-  console.info('go to signup');
-};
+  if(username.value=='' || email.value=='' || password.value==''){
+    alert('请填写完整的注册信息');
+    return;
+  }
+    try{
+      const reguserres=api.post('/reguser',{
+        username:username.value,
+        email:email.value,
+        password:password.value
+
+      })  
+      alert('注册成功，请登录！');
+    } catch(error) {
+      console.error('注册失败:', error);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || '注册失败，请重试';
+      alert(errorMessage);
+    } finally {
+      isreguser.value = false;
+      islogin.value = true;
+      // 清空表单
+      username.value = '';
+      email.value = '';
+      password.value = '';
+    }
+  }
 
 </script>
 

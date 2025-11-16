@@ -35,7 +35,7 @@ router.post('/reguser', async (req, res) => {
 
   } catch (error) {
     console.error(error.message);
-    res.status(500).json({ error: '服务器内部错误' });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -80,7 +80,7 @@ router.post('/login', async (req, res) => {
 
   } catch (error) {
     console.error(error.message);
-    res.status(500).json({ error: '服务器内部错误' });
+    res.status(500).json({ error: error.message });
   }
 });
 
