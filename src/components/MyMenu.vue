@@ -17,15 +17,24 @@
         </div>
       </div>
 
-      <!-- 底部-->
+      <!-- 底部 -->
       <div class="sidebar-footer">
-         <!-- <router-link to="/login"></router-link> -->
-        <button class="login-btn" @click="openLogin">登录 / 注册</button>
+        <!-- 根据登录状态显示不同内容 -->
+        <template v-if="currentUser">
+          <div class="user-info">
+            <span class="username">{{ currentUser.username }}</span>
+            <button class="logout-btn" @click="handleLogout">退出登录</button>
+          </div>
+        </template>
+        <template v-else>
+          <button class="login-btn" @click="openLogin">登录 / 注册</button>
+        </template>
       </div>
     </div>
   </div>
  
-  <div class="loginmask"  v-if="islogin" @click.self="closeLogin">
+  <!-- 登录弹窗 -->
+  <div class="loginmask" v-if="islogin" @click.self="closeLogin">
     <div class="logindialog">
       <button class="dialog-close" @click="closeLogin" aria-label="关闭登录窗口">×</button>
       <h3>登录</h3>
@@ -67,15 +76,15 @@
     </div>
   </div>
 
-<div class="loginmask" v-if="isreguser">
-  <div v-if="isreguser">
+  <!-- 注册弹窗 -->
+  <div class="loginmask" v-if="isreguser">
     <div class="logindialog">
       <button class="dialog-close" @click="isreguser=false" aria-label="关闭注册窗口">×</button>
       <h3>注册</h3>
       <form class="login-form" @submit.prevent="handleSignup">
-        <label class="form-label" for="username">用户名</label>
+        <label class="form-label" for="reg-username">用户名</label>
         <input
-          id="username"
+          id="reg-username"
           type="text"
           class="form-input"
           placeholder="请输入用户名"
@@ -85,24 +94,23 @@
         <label class="form-label" for="email">邮箱</label>
         <input
           id="email"
-          type="text"
+          type="email"
           class="form-input"
           placeholder="请输入邮箱号"
           v-model="email"
         />
 
-
-        <label class="form-label" for="password">密码</label>
+        <label class="form-label" for="reg-password">密码</label>
         <input
-          id="password"
+          id="reg-password"
           type="password"
           class="form-input"
           placeholder="请输入密码"
           v-model="password"
         />
 
-        <button class="primary-btn" type="submit">
-          立即注册
+        <button class="primary-btn" type="submit" :disabled="isLoading">
+          {{ isLoading ? '注册中...' : '立即注册' }}
         </button>
 
         <p class="alternate-action">
@@ -112,50 +120,64 @@
       </form>
     </div>
   </div>
-</div>
 </template>
 
 <script setup>
-
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import api from '../api/index';
 
+// 状态管理
 const islogin = ref(false);
+const isreguser = ref(false);
 const username = ref('');
 const email = ref('');
 const password = ref('');
 const rememberMe = ref(false);
 const isLoading = ref(false);
-const isreguser = ref(false);
+const currentUser = ref(null); // 存储当前登录用户信息
+
+// 初始化时检查登录状态
+onMounted(() => {
+  const savedUser = localStorage.getItem('user');
+  const token = localStorage.getItem('token');
+  if (savedUser && token) {
+    currentUser.value = JSON.parse(savedUser);
+  }
+});
+
+// 打开登录弹窗
 const openLogin = () => {
   islogin.value = true;
 };
 
+// 关闭登录弹窗
 const closeLogin = () => {
   islogin.value = false;
 };
-//登录功能实现
+
+// 登录功能实现
 const handleSubmit = async () => {
   if (isLoading.value) return;
-  if(!username.value || !password.value){
+  if (!username.value || !password.value) {
     alert('请填写用户名和密码');
     return;
   }
   isLoading.value = true;
-  try{
-    const response = await api.post('/login',{
+  try {
+    const response = await api.post('/login', {
       username: username.value,
       password: password.value
     });
     
-    // 保存 token 和用户信息（响应拦截器已返回 response.data）
+    // 保存 token 和用户信息
     if (response.token) {
       localStorage.setItem('token', response.token);
       if (rememberMe.value) {
         localStorage.setItem('user', JSON.stringify(response.user));
       }
+      // 更新当前用户信息
+      currentUser.value = response.user;
       alert('登录成功！');
-      isLoading.value = false;
       closeLogin();
       // 清空表单
       username.value = '';
@@ -165,42 +187,59 @@ const handleSubmit = async () => {
     console.error('登录失败:', error);
     const errorMessage = error.response?.data?.error || error.response?.data?.message || '登录失败，请检查用户名和密码';
     alert(errorMessage);
-    isLoading.value = false;
   } finally {
-    isLlogin.value = false;
+    isLoading.value = false;
   }
 };
 
-//注册功能实现
-const handleSignup = () => {
-  if(username.value=='' || email.value=='' || password.value==''){
+// 注册功能实现
+const handleSignup = async () => {
+  if (isLoading.value) return;
+  if (!username.value || !email.value || !password.value) {
     alert('请填写完整的注册信息');
     return;
   }
-    try{
-      const reguserres=api.post('/reguser',{
-        username:username.value,
-        email:email.value,
-        password:password.value
-
-      })  
-      alert('注册成功，请登录！');
-    } catch(error) {
-      console.error('注册失败:', error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || '注册失败，请重试';
-      alert(errorMessage);
-    } finally {
-      isreguser.value = false;
-      islogin.value = true;
-      // 清空表单
-      username.value = '';
-      email.value = '';
-      password.value = '';
-    }
+  
+  // 简单邮箱验证
+  const emailReg = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailReg.test(email.value)) {
+    alert('请输入有效的邮箱地址');
+    return;
   }
+  
+  isLoading.value = true;
+  try {
+    await api.post('/reguser', {
+      username: username.value,
+      email: email.value,
+      password: password.value
+    });  
+    alert('注册成功，请登录！');
+    isreguser.value = false;
+    islogin.value = true;
+  } catch(error) {
+    console.error('注册失败:', error);
+    const errorMessage = error.response?.data?.error || error.response?.data?.message || '注册失败，请重试';
+    alert(errorMessage);
+  } finally {
+    isLoading.value = false;
+    // 清空表单
+    username.value = '';
+    email.value = '';
+    password.value = '';
+  }
+};
 
+// 退出登录
+const handleLogout = () => {
+  if (confirm('确定要退出登录吗？')) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    currentUser.value = null;
+    alert('已退出登录');
+  }
+};
 </script>
-
 <style>
 .contain {
   width: 240px; 
@@ -454,5 +493,35 @@ const handleSignup = () => {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+.user-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.username {
+  color: #333;
+  font-size: 14px;
+  text-align: center;
+  padding: 5px 0;
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 8px 0;
+  background-color: #f5f7fa;
+  color: #f56c6c;
+  border: 1px solid #f56c6c;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background-color: #fff5f5;
 }
 </style>
