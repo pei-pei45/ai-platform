@@ -4,9 +4,9 @@
     <div class="chat-content">
       <!-- 初始消息列表 -->
       <div class="message-list" v-if="messages.length > 0">
-        <div 
-          class="message-item user-message" 
-          v-for="(msg, index) in messages" 
+        <div
+          :class="['message-item', msg.type === 'user' ? 'user-message' : 'assistant-message']"
+          v-for="(msg, index) in messages"
           :key="index"
         >
           {{ msg.content }}
@@ -28,7 +28,8 @@
           @focus="isFocused = true"
           @blur="isFocused = false"
           v-model="currentInput"
-          @keyup.enter="handleSend"
+          @keyup.enter.exact.prevent="handleSend"
+          :disabled="isLoading"
         ></textarea>
         <div class="button-example">
           <div class="button-row">
@@ -37,7 +38,7 @@
           </div>
         </div>
       </div>
-      <button class="send-btn" @click="handleSend">
+      <button class="send-btn" @click="handleSend" :disabled="isLoading">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"></line>
           <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -48,40 +49,74 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, nextTick } from 'vue';
 import { ElButton } from 'element-plus';
+import api from '../api/index';
 
 // 响应式变量
 const currentInput = ref(''); // 输入框内容
 const messages = ref([]); // 消息列表
 const isFocused = ref(false);
+const isLoading = ref(false);
+
+// 滚动到最新消息
+const scrollToBottom = () => {
+  nextTick(() => {
+    const messageList = document.querySelector('.message-list');
+    if (messageList) {
+      messageList.scrollTop = messageList.scrollHeight;
+    }
+  });
+};
 
 // 发送消息处理
-const handleSend = () => {
+const handleSend = async () => {
   // 验证输入内容
+  if (isLoading.value) return;
   if (!currentInput.value.trim()) {
     alert('请输入内容后再发送');
     return;
   }
 
-  // 添加消息到列表
+  const userMessage = currentInput.value.trim();
+
+  // 添加用户消息到列表
   messages.value.push({
-    content: currentInput.value.trim(),
+    content: userMessage,
     type: 'user'
   });
 
   // 清空输入框
   currentInput.value = '';
 
-  // 自动滚动到底部（后续添加消息时也会触发）
+  // 自动滚动到底部
   scrollToBottom();
-};
 
-// 滚动到最新消息
-const scrollToBottom = () => {
-  const messageList = document.querySelector('.message-list');
-  if (messageList) {
-    messageList.scrollTop = messageList.scrollHeight;
+  // 添加 AI 回复占位符
+  const aiMessageIndex = messages.value.length;
+  messages.value.push({
+    content: '正在思考...',
+    type: 'assistant'
+  });
+
+  isLoading.value = true;
+
+  try {
+    const response = await api.post('/chat', {
+      message: userMessage
+    });
+
+    if (response.success && response.content) {
+      messages.value[aiMessageIndex].content = response.content;
+    } else {
+      messages.value[aiMessageIndex].content = '抱歉，我没有收到回复';
+    }
+  } catch (error) {
+    console.log('error', error);
+    messages.value[aiMessageIndex].content = error.response?.data?.error || '发送失败，请稍后再试';
+  } finally {
+    isLoading.value = false;
+    scrollToBottom();
   }
 };
 </script>
@@ -155,7 +190,7 @@ const scrollToBottom = () => {
 /* 用户消息样式 */
 .user-message {
   align-self: flex-end; /* 靠右显示 */
-  background-color: #3182ce;
+  background-color: #b6b6b6;
   color: white;
 }
 
@@ -241,5 +276,18 @@ textarea {
 
 .button-row > * {
   margin: 0;
+}
+
+/* ai消息 */
+.assistant-message {
+  /* //靠左显示 */
+  align-self: flex-start;   
+  background-color: #b4d4f5;
+  color: #2d3748;
+}
+
+.send-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>
