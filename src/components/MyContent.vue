@@ -3,10 +3,10 @@
     <!-- 聊天内容区域 -->
     <div class="chat-content">
       <!-- 初始消息列表 -->
-      <div class="message-list" v-if="messages.length > 0">
+      <div class="message-list" v-if="chatStore.messages.length > 0">
         <div
-          :class="['message-item', msg.type === 'user' ? 'user-message' : 'assistant-message']"
-          v-for="(msg, index) in messages"
+          :class="['message-item', msg.role=== 'user' ? 'user-message' : 'assistant-message']"
+          v-for="(msg, index) in chatStore.messages"
           :key="index"
         >
           {{ msg.content }}
@@ -27,7 +27,7 @@
           placeholder="请输入你的问题..." 
           @focus="isFocused = true"
           @blur="isFocused = false"
-          v-model="currentInput"
+          v-model="chatStore.currentInput"
           @keyup.enter.exact.prevent="handleSend"
           :disabled="isLoading"
         ></textarea>
@@ -52,13 +52,16 @@
 import { ref, nextTick } from 'vue';
 import { ElButton } from 'element-plus';
 import api from '../api/index';
+import {useChatStore} from '../stores/chat'
 
 // 响应式变量
-const currentInput = ref(''); // 输入框内容
-const messages = ref([]); // 消息列表
-const isFocused = ref(false);
-const isLoading = ref(false);
-
+// const currentInput = ref(''); // 输入框内容
+// const messages = ref([]); // 消息列表
+// const isFocused = ref(false);
+// const isLoading = ref(false);
+const chatStore = useChatStore();
+console.log('chatStore 对象:', chatStore);
+console.log('chatStore.messages:', chatStore.messages);
 // 滚动到最新消息
 const scrollToBottom = () => {
   nextTick(() => {
@@ -71,53 +74,59 @@ const scrollToBottom = () => {
 
 // 发送消息处理
 const handleSend = async () => {
-  // 验证输入内容
-  if (isLoading.value) return;
-  if (!currentInput.value.trim()) {
+  if(!chatStore.currentInput.trim()){
     alert('请输入内容后再发送');
     return;
   }
-
-  const userMessage = currentInput.value.trim();
-
-  // 添加用户消息到列表
-  messages.value.push({
-    content: userMessage,
-    type: 'user'
-  });
-
-  // 清空输入框
-  currentInput.value = '';
-
-  // 自动滚动到底部
+  await chatStore.sendMessage();
   scrollToBottom();
+  // // 验证输入内容
+  // if (isLoading.value) return;
+  // if (!currentInput.value.trim()) {
+  //   alert('请输入内容后再发送');
+  //   return;
+  // }
 
-  // 添加 AI 回复占位符
-  const aiMessageIndex = messages.value.length;
-  messages.value.push({
-    content: '正在思考...',
-    type: 'assistant'
-  });
+  // const userMessage = currentInput.value.trim();
 
-  isLoading.value = true;
+  // // 添加用户消息到列表
+  // messages.value.push({
+  //   content: userMessage,
+  //   type: 'user'
+  // });
 
-  try {
-    const response = await api.post('/chat', {
-      message: userMessage
-    });
+  // // 清空输入框
+  // currentInput.value = '';
 
-    if (response.success && response.content) {
-      messages.value[aiMessageIndex].content = response.content;
-    } else {
-      messages.value[aiMessageIndex].content = '抱歉，我没有收到回复';
-    }
-  } catch (error) {
-    console.log('error', error);
-    messages.value[aiMessageIndex].content = error.response?.data?.error || '发送失败，请稍后再试';
-  } finally {
-    isLoading.value = false;
-    scrollToBottom();
-  }
+  // // 自动滚动到底部
+  // scrollToBottom();
+
+  // // 添加 AI 回复占位符
+  // const aiMessageIndex = messages.value.length;
+  // messages.value.push({
+  //   content: '正在思考...',
+  //   type: 'assistant'
+  // });
+
+  // isLoading.value = true;
+
+  // try {
+  //   const response = await api.post('/chat', {
+  //     message: userMessage
+  //   });
+
+  //   if (response.success && response.content) {
+  //     messages.value[aiMessageIndex].content = response.content;   //替换占位符
+  //   } else {
+  //     messages.value[aiMessageIndex].content = '抱歉，我没有收到回复';
+  //   }
+  // } catch (error) {
+  //   console.log('error', error);
+  //   messages.value[aiMessageIndex].content = error.response?.data?.error || '发送失败，请稍后再试';
+  // } finally {
+  //   isLoading.value = false;
+  //   scrollToBottom();
+  // }
 };
 </script>
 

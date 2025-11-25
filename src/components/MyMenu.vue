@@ -3,7 +3,7 @@
     <div class="sidebar-wrapper">
       <!-- 新对话 -->
       <div class="sidebar-header">
-        <button class="new-chat-btn">+ 新对话</button>
+        <button class="new-chat-btn" @click="resetConversation">+ 新对话</button>
       </div>
 
       <!-- 历史记录 -->
@@ -125,7 +125,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import api from '../api/index';
-
+import {useChatStore} from '../stores/chat'
 // 状态管理
 const islogin = ref(false);
 const isreguser = ref(false);
@@ -135,6 +135,7 @@ const password = ref('');
 const rememberMe = ref(false);
 const isLoading = ref(false);
 const currentUser = ref(null); // 存储当前登录用户信息
+const chatStore = useChatStore();
 
 // 初始化时检查登录状态
 onMounted(() => {
@@ -192,6 +193,7 @@ const handleSubmit = async () => {
   }
 };
 
+
 // 注册功能实现
 const handleSignup = async () => {
   if (isLoading.value) return;
@@ -239,6 +241,10 @@ const handleLogout = () => {
     alert('已退出登录');
   }
 };
+
+const resetConversation = () => {
+  chatStore.resetConversation();
+  };
 </script>
 <style>
 .contain {
