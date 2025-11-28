@@ -10,10 +10,18 @@
       <div class="history-container">
         <div class="history-title">历史记录</div>
         <div class="history-list">
-          <!-- 历史记录示例项 -->
-          <div class="history-item">如何使用 Vue3 开发组件</div>
-          <div class="history-item">Element Plus 布局技巧</div>
-          <div class="history-item">前端性能优化方案</div>
+          <div
+            v-for="item in conversations"
+            :key="item.id"
+            class="history-item"
+            :class="{ active: item.id === currentChatId }"
+            @click="loadConversation(item.id)"
+          >
+            {{ item.chat_name }}
+          </div>
+          <div v-if="conversations.length === 0 && currentUser" class="empty-history">
+            暂无历史记录
+          </div>
         </div>
       </div>
 
@@ -136,13 +144,14 @@ const rememberMe = ref(false);
 const isLoading = ref(false);
 const currentUser = ref(null); // 存储当前登录用户信息
 const chatStore = useChatStore();
-
+const conversations = ref([]);
 // 初始化时检查登录状态
 onMounted(() => {
   const savedUser = localStorage.getItem('user');
   const token = localStorage.getItem('token');
   if (savedUser && token) {
     currentUser.value = JSON.parse(savedUser);
+    fetchConversations();
   }
 });
 
@@ -244,7 +253,45 @@ const handleLogout = () => {
 
 const resetConversation = () => {
   chatStore.resetConversation();
+  currentChatId.value = null;
+  chatStore.resetConversation();
   };
+
+  // 获取对话列表
+const fetchConversations = async () => {
+  if (!currentUser.value) {
+    conversations.value = [];
+    return;
+  }
+  try {
+    const res = await api.get('/conversations');
+    conversations.value = res.conversations || [];
+  } catch (error) {
+    console.error('获取对话列表失败:', error);
+  }
+};
+
+// 加载指定对话
+const loadConversation = async (chatId) => {
+  try {
+    const res = await api.get(`/conversations/${chatId}/messages`);
+    chatStore.loadConversation(chatId, res.messages || []);
+    currentChatId.value = chatId;
+  } catch (error) {
+    console.error('加载对话失败:', error);
+    alert('加载对话失败，请重试');
+  }
+};
+// 监听登录状态变化
+watch(currentUser, (newVal) => {
+  if (newVal) {
+    fetchConversations();
+  } else {
+    conversations.value = [];
+    chatStore.resetConversation();
+  }
+});
+
 </script>
 <style>
 .contain {
@@ -529,5 +576,17 @@ const resetConversation = () => {
 
 .logout-btn:hover {
   background-color: #fff5f5;
+}
+
+.history-item.active {
+  background-color: #e6f4ff;
+  border-left: 3px solid #409eff;
+}
+
+.empty-history {
+  padding: 20px;
+  text-align: center;
+  color: #999;
+  font-size: 13px;
 }
 </style>
