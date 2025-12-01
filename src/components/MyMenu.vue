@@ -17,7 +17,11 @@
             :class="{ active: item.id === currentChatId }"
             @click="loadConversation(item.id)"
           >
-            {{ item.chat_name }}
+            <div class="history-item-content">{{ item.chat_name }}</div>
+            <div class="history-item-actions">
+              <button class="action-btn rename-btn" @click="renameConversation(item.id, $event)" title="重命名">✏️</button>
+              <button class="action-btn delete-btn" @click="deleteConversation(item.id, $event)" title="删除">🗑️</button>
+            </div>
           </div>
           <div v-if="conversations.length === 0 && currentUser" class="empty-history">
             暂无历史记录
@@ -131,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import api from '../api/index';
 import {useChatStore} from '../stores/chat'
 // 状态管理
@@ -145,6 +149,7 @@ const isLoading = ref(false);
 const currentUser = ref(null); // 存储当前登录用户信息
 const chatStore = useChatStore();
 const conversations = ref([]);
+const currentChatId = ref(null); // 当前选中的聊天ID
 // 初始化时检查登录状态
 onMounted(() => {
   const savedUser = localStorage.getItem('user');
@@ -252,10 +257,9 @@ const handleLogout = () => {
 };
 
 const resetConversation = () => {
-  chatStore.resetConversation();
+  chatStore.createNewConversation();
   currentChatId.value = null;
-  chatStore.resetConversation();
-  };
+};
 
   // 获取对话列表
 const fetchConversations = async () => {
@@ -266,8 +270,13 @@ const fetchConversations = async () => {
   try {
     const res = await api.get('/conversations');
     conversations.value = res.conversations || [];
+    // 如果没有选中的对话且有对话列表，自动选择第一个
+    if (!currentChatId.value && conversations.value.length > 0) {
+      loadConversation(conversations.value[0].id);
+    }
   } catch (error) {
     console.error('获取对话列表失败:', error);
+    alert('获取历史记录失败，请刷新页面重试');
   }
 };
 
@@ -275,11 +284,60 @@ const fetchConversations = async () => {
 const loadConversation = async (chatId) => {
   try {
     const res = await api.get(`/conversations/${chatId}/messages`);
-    chatStore.loadConversation(chatId, res.messages || []);
+    // 转换消息格式以匹配store期望的格式
+    const formattedMessages = (res.messages || []).map(msg => ({
+      role: msg.role,
+      content: msg.content,
+      timestamp: msg.created_at
+    }));
+    chatStore.loadConversation(chatId, formattedMessages);
     currentChatId.value = chatId;
   } catch (error) {
     console.error('加载对话失败:', error);
     alert('加载对话失败，请重试');
+  }
+};
+
+// 删除对话
+const deleteConversation = async (chatId, event) => {
+  event.stopPropagation(); // 阻止冒泡，避免触发loadConversation
+  if (confirm('确定要删除这个对话吗？')) {
+    try {
+      await api.delete(`/conversations/${chatId}`);
+      // 从列表中移除
+      conversations.value = conversations.value.filter(c => c.id !== chatId);
+      // 如果删除的是当前对话，重置到空状态
+      if (currentChatId.value === chatId) {
+        chatStore.resetConversation();
+        currentChatId.value = null;
+        // 如果还有其他对话，加载第一个
+        if (conversations.value.length > 0) {
+          loadConversation(conversations.value[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('删除对话失败:', error);
+      alert('删除对话失败，请重试');
+    }
+  }
+};
+
+// 重命名对话
+const renameConversation = async (chatId, event) => {
+  event.stopPropagation();
+  const newTitle = prompt('请输入新的对话标题：');
+  if (newTitle && newTitle.trim()) {
+    try {
+      await api.put(`/conversations/${chatId}`, { chat_name: newTitle.trim() });
+      // 更新本地列表
+      const conversation = conversations.value.find(c => c.id === chatId);
+      if (conversation) {
+        conversation.chat_name = newTitle.trim();
+      }
+    } catch (error) {
+      console.error('重命名对话失败:', error);
+      alert('重命名对话失败，请重试');
+    }
   }
 };
 // 监听登录状态变化
@@ -363,6 +421,40 @@ watch(currentUser, (newVal) => {
   transition: all 0.2s;
   white-space: nowrap; 
   overflow: hidden; 
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.history-item-content {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+.history-item-actions {
+  display: none;
+  gap: 4px;
+}
+
+.history-item:hover .history-item-actions {
+  display: flex;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.action-btn:hover {
+  background-color: #f0f0f0;
 }
 
 .history-item:hover {

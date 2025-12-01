@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { jwtSecretKey } = require('../confij');
 
 // 注册接口
 router.post('/reguser', async (req, res) => {
@@ -63,10 +64,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: '密码错误' });
     }
 
-    // 生成JWT令牌（确保JWT_SECRET已配置）
+    // 生成JWT令牌
     const token = jwt.sign(
       { userId: userinfo.id, username: userinfo.username },
-      process.env.JWT_SECRET, // 确保.env中已配置JWT_SECRET
+      jwtSecretKey, // 使用与验证中间件相同的密钥
       { expiresIn: '7d' }
     );
 

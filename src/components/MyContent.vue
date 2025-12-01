@@ -1,5 +1,10 @@
 <template>
   <div class="page-container">
+    <!-- 对话标题 -->
+    <div class="chat-header" v-if="chatStore.currentChatId">
+      <h2 class="chat-title">{{ currentChatTitle }}</h2>
+    </div>
+    
     <!-- 聊天内容区域 -->
     <div class="chat-content">
       <!-- 初始消息列表 -->
@@ -7,16 +12,19 @@
         <div
           :class="['message-item', msg.role=== 'user' ? 'user-message' : 'assistant-message']"
           v-for="(msg, index) in chatStore.messages"
-          :key="index"
+          :key="msg.timestamp || index"
         >
-          {{ msg.content }}
+          <div class="message-content">{{ msg.content }}</div>
+          <div class="message-time" v-if="msg.timestamp">
+            {{ new Date(msg.timestamp).toLocaleTimeString() }}
+          </div>
         </div>
       </div>
       
       <!-- 初始状态提示 -->
       <div class="initial-prompt" v-else>
         <h1 class="title">人工智能助手</h1>
-        <p>请输入你的问题，开始对话吧~</p>
+        <p>请选择一个对话或者输入你的问题，开始对话吧~</p>
       </div>
     </div>
 
@@ -38,7 +46,7 @@
           </div>
         </div>
       </div>
-      <button class="send-btn" @click="handleSend" :disabled="isLoading">
+      <button class="send-btn" @click="handleSend" :disabled="chatStore.isLoading">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"></line>
           <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -49,19 +57,18 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, computed } from 'vue';
 import { ElButton } from 'element-plus';
-import api from '../api/index';
 import {useChatStore} from '../stores/chat'
 
 // 响应式变量
-// const currentInput = ref(''); // 输入框内容
-// const messages = ref([]); // 消息列表
-// const isFocused = ref(false);
-// const isLoading = ref(false);
+const isFocused = ref(false);
 const chatStore = useChatStore();
-console.log('chatStore 对象:', chatStore);
-console.log('chatStore.messages:', chatStore.messages);
+
+// 计算属性，用于获取当前对话的标题
+const currentChatTitle = computed(() => {
+  return chatStore.chatTitle || '新对话';
+});
 // 滚动到最新消息
 const scrollToBottom = () => {
   nextTick(() => {
@@ -78,8 +85,19 @@ const handleSend = async () => {
     alert('请输入内容后再发送');
     return;
   }
-  await chatStore.sendMessage();
+  try {
+    await chatStore.sendMessage();
+    scrollToBottom();
+  } catch (error) {
+    console.error('发送消息失败:', error);
+    alert('发送消息失败，请重试');
+  }
+};
+
+// 监听消息变化，自动滚动到底部
+nextTick(() => {
   scrollToBottom();
+});
   // // 验证输入内容
   // if (isLoading.value) return;
   // if (!currentInput.value.trim()) {
@@ -127,7 +145,7 @@ const handleSend = async () => {
   //   isLoading.value = false;
   //   scrollToBottom();
   // }
-};
+// };
 </script>
 
 <style>
@@ -143,9 +161,24 @@ const handleSend = async () => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-    width: 100%;
+  width: 100%;
   background-color: #f9fafb;
   padding: 20px;
+}
+
+/* 对话标题区域 */
+.chat-header {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto 16px auto;
+  padding: 12px 0;
+}
+
+.chat-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
 }
 
 /* 聊天内容区域 - 自动填充剩余空间 */
@@ -194,6 +227,20 @@ const handleSend = async () => {
   border-radius: 18px;
   line-height: 1.5;
   word-wrap: break-word;
+  position: relative;
+}
+
+/* 消息内容 */
+.message-content {
+  margin-bottom: 4px;
+}
+
+/* 消息时间 */
+.message-time {
+  font-size: 11px;
+  opacity: 0.7;
+  text-align: right;
+  margin-top: 2px;
 }
 
 /* 用户消息样式 */
@@ -238,6 +285,7 @@ textarea {
   resize: vertical;
   margin-bottom: 10px;
   resize: none;
+  font-family: inherit;
 }
 
 .question-input:focus-within {
